@@ -79,6 +79,46 @@ export default {
       return new Response('Forbidden', {status: 403});
     }
 
+    // Authenticated V13 connectivity diagnostic. Does not contact GAS or Telegram.
+    if (url.pathname === '/__v13check') {
+      const hasBinding = !!(env.V13_STAGING && typeof env.V13_STAGING.fetch === 'function');
+      const keyConfigured = typeof env.V13_SHADOW_KEY === 'string' && env.V13_SHADOW_KEY.length >= 40;
+      const result = {test: 'V13 shadow connectivity', binding: hasBinding, key_configured: keyConfigured};
+      if (!hasBinding || !keyConfigured) {
+        return new Response(JSON.stringify({...result, ok: false, problem: !hasBinding ? 'V13_STAGING binding missing' : 'V13_SHADOW_KEY missing or under 40 characters'}), {
+          status: 200, headers: {'Content-Type':'application/json','Cache-Control':'no-store'}
+        });
+      }
+      const updateId = 880000000000 + Date.now();
+      try {
+        const v13Response = await env.V13_STAGING.fetch(
+          'https://utag-v13-staging.nurullohxusanov00.workers.dev/internal/ingest',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Utag-Shadow-Key': env.V13_SHADOW_KEY
+            },
+            body: JSON.stringify({update_id: updateId})
+          }
+        );
+        const v13Text = (await v13Response.text()).slice(0, 500);
+        return new Response(JSON.stringify({
+          ...result,
+          ok: v13Response.ok,
+          v13_http: v13Response.status,
+          v13_response: v13Text,
+          update_id: updateId
+        }), {status: 200, headers: {'Content-Type':'application/json','Cache-Control':'no-store'}});
+      } catch (error) {
+        return new Response(JSON.stringify({
+          ...result, ok: false,
+          problem: 'Service binding request failed',
+          error: String(error && error.message || error).slice(0, 200)
+        }), {status: 200, headers: {'Content-Type':'application/json','Cache-Control':'no-store'}});
+      }
+    }
+
     const raw = await request.text();
     if (raw.length > 262144) {
       return new Response('Too large', {status: 413});
