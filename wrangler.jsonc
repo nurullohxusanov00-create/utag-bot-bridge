@@ -2,5 +2,16 @@
   "name": "utag-bot-bridge-test",
   "main": "worker.js",
   "compatibility_date": "2026-11-14",
-  "workers_dev": true
+  "workers_dev": true,
+  "keep_vars": true,
+  "services": [
+    {
+      "binding": "V12_STAGING",
+      "service": "utag-v12-staging"
+    },
+    {
+      "binding": "V13_STAGING",
+      "service": "utag-v13-staging"
+    }
+  ]
 }
