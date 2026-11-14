@@ -1,4 +1,4 @@
-// Trigger first Cloudflare build{
+{
   "name": "utag-bot-bridge-test",
   "main": "worker.js",
   "compatibility_date": "2026-11-14",
